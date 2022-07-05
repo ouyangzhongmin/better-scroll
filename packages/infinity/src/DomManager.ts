@@ -35,6 +35,10 @@ export default class DomManager {
     if (end > list.length) {
       end = list.length
     }
+    // console.log("updateDom::::", list.length, start, end)
+    // for (let i = 0; i < list.length; i++) {
+    //   console.log("listItem:",i, list[i].data)
+    // }
 
     this.collectUnusedDom(list, start, end)
     this.createDom(list, start, end)
