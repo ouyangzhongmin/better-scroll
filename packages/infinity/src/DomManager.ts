@@ -35,6 +35,10 @@ export default class DomManager {
     if (end > list.length) {
       end = list.length
     }
+    // console.log("updateDom::::", list.length, start, end)
+    // for (let i = 0; i < list.length; i++) {
+    //   console.log("listItem:",i, list[i].data)
+    // }
 
     this.collectUnusedDom(list, start, end)
     this.createDom(list, start, end)
@@ -219,6 +223,11 @@ export default class DomManager {
   }
   resetState() {
     this.destroy()
+    // 清理当前的渲染对象
+    const childs = this.content.childNodes
+    for (let i = childs.length - 1; i >= 0; i--) {
+      this.content.removeChild(childs[i])
+    }
     this.timers = []
     this.unusedDom = []
   }

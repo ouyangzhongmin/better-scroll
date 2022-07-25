@@ -80,7 +80,7 @@ webpackConfig
       .use('ts')
         .loader('ts-loader')
         .options({
-          transpileOnly: true
+          transpileOnly: false
         })
         .end()
       .end()

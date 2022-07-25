@@ -4,6 +4,7 @@ import IndexCalculator from './IndexCalculator'
 import DataManager from './DataManager'
 import DomManager from './DomManager'
 import Tombstone from './Tombstone'
+import propertiesConfig from './propertiesConfig'
 
 export interface InfinityOptions {
   fetch: (count: number) => Promise<Array<any> | false>
@@ -15,11 +16,18 @@ declare module '@better-scroll/core' {
   interface CustomOptions {
     infinity?: InfinityOptions
   }
+  interface CustomAPI {
+    infinity: PluginAPI
+  }
+}
+
+interface PluginAPI {
+  resetInfinityState(newDatas: Array<any>): void
 }
 
 const EXTRA_SCROLL_Y = -2000
 
-export default class InfinityScroll {
+export default class InfinityScroll implements PluginAPI  {
   static pluginName = 'infinity'
   start: number = 0
   end: number = 0
@@ -34,6 +42,8 @@ export default class InfinityScroll {
   }
 
   init() {
+    this.handleBScroll()
+
     this.handleOptions()
 
     const {
@@ -87,6 +97,10 @@ export default class InfinityScroll {
     boundary.maxScrollPos = EXTRA_SCROLL_Y
   }
 
+  private handleBScroll() {
+    this.scroll.proxy(propertiesConfig)
+  }
+
   private handleOptions() {
     // narrow down type to an object
     const infinityOptions = this.scroll.options.infinity
@@ -125,6 +139,10 @@ export default class InfinityScroll {
   private onFetchFinish(list: Array<any>, hasMore: boolean) {
     const { end } = this.updateDom(list)
     if (!hasMore) {
+      let list2 =this.dataManager.getList()
+      for (let i = 0; i < list2.length; i++) {
+        console.log("listItem:",i, list2[i].data)
+      }
       this.domManager.removeTombstone()
       this.scroll.scroller.animater.stop()
       this.scroll.resetPosition()
@@ -157,6 +175,17 @@ export default class InfinityScroll {
       startPos,
       endPos,
     }
+  }
+
+  resetInfinityState(newDatas: Array<any>){
+    this.start = 0
+    this.end  = 0
+    this.dataManager.resetState()
+    this.indexCalculator.resetState()
+    this.domManager.resetState()
+    this.dataManager.add(newDatas)
+    // console.log("resetInfinityState:::::", this.dataManager.getList())
+    this.update({ y: 0 })
   }
 
   destroy() {

@@ -23,23 +23,55 @@
         </div>
       </li>
     </div>
+
+    <div v-show="beforePullDown">
+      <span>Pull Down and refresh</span>
+    </div>
+    <div v-show="!beforePullDown">
+      <div v-show="isPullingDown">
+        <span>Loading...</span>
+      </div>
+      <div v-show="!isPullingDown">
+        <span>Refresh success</span>
+      </div>
+    </div>
+
     <div ref="chat" class="infinity-timeline">
       <ul>
       </ul>
     </div>
+
+    <div class="pullup-tips">
+      <div v-if="!isPullUpLoad" class="before-trigger">
+        <span class="pullup-txt">Pull up and load more</span>
+      </div>
+      <div v-else class="after-trigger">
+        <span class="pullup-txt">Loading...</span>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script>
   import BScroll from '@better-scroll/core'
-  import InfinityScroll from '@better-scroll/infinity'
+  import InfinityScroll from '../../../../infinity/src'
+  import Pullup from '@better-scroll/pull-up'
+  import PullDown from '@better-scroll/pull-down'
+  import EvemtEmitter3 from 'eventemitter3'
   import message from './data/message.json'
-
+  BScroll.use(Pullup)
+  BScroll.use(PullDown)
   BScroll.use(InfinityScroll)
 
+
+  const TIME_BOUNCE = 800
+  const THRESHOLD = 70
+  const STOP = 56
   const NUM_AVATARS = 4
   const NUM_IMAGES = 77
   const INIT_TIME = new Date().getTime()
+  let STEP = 0
 
   function getItem(id) {
     function pickRandom(a) {
@@ -77,6 +109,11 @@
     created() {
       this.nextItem = 0
       this.pageNum = 0
+      this.isPullUpLoad = false
+      this.beforePullDown= true
+      this.isPullingDown= false
+      this.fetchDataStatus = 0
+      this.event = new EvemtEmitter3()
     },
     mounted() {
       this.createInfinityScroll()
@@ -84,8 +121,14 @@
     methods: {
       createInfinityScroll() {
         this.scroll = new BScroll(this.$refs.chat, {
+          pullUpLoad: true,
+          pullDownRefresh: {
+            threshold: THRESHOLD,
+            stop: STOP
+          },
           infinity: {
             render: (item, div) => {
+              console.log("render:::::", item)
               div = div || this.$refs.message.cloneNode(true)
               div.dataset.id = item.id
               div.querySelector('.infinity-avatar').src = require(`./image/avatar${item.avatar}.jpg`)
@@ -115,21 +158,27 @@
             },
             fetch: (count) => {
               // Fetch at least 30 or count more objects for display.
-              count = Math.max(30, count)
+              count = Math.max(10, count)
+              count = 20
               return new Promise((resolve, reject) => {
                 // Assume 50 ms per item.
                 setTimeout(() => {
-                  if (++this.pageNum > 20) {
+                  if (++this.pageNum > 10 ) {
                     resolve(false)
+                    this.fetchDataStatus = -1
                   } else {
-                    console.log('pageNum', this.pageNum)
+
                     let items = []
                     for (let i = 0; i < Math.abs(count); i++) {
                       items[i] = getItem(this.nextItem++)
                     }
+                    console.log('pageNum', this.pageNum, count, items.length)
+                    // console.log("items::::", count, items.length)
                     resolve(Promise.all(items))
+                    this.fetchDataStatus = 1
                   }
-                }, 500)
+                  this.event.emit("fetchData", "msg")
+                }, 2000)
               })
             }
           }
@@ -139,6 +188,59 @@
         })
         this.scroll.on('scrollEnd', () => {
           console.log('scrollEnd')
+        })
+        this.scroll.on('pullingUp',() => {
+          this.isPullUpLoad = true
+          console.log("isPullUpLoad")
+          document.getElementsByClassName("pullup-tips")[0].style.display = "block";
+          this.event.once('fetchData',(msg) => {
+            this.scroll.finishPullUp()
+            if (this.pageNum > 1){
+              this.scroll.scrollBy(0, -80,400)
+            }
+            this.isPullUpLoad = false
+            console.log("finishPullUp!!!!!!!!!!!!!!!!", this.fetchDataStatus)
+            document.getElementsByClassName("pullup-tips")[0].style.display = "none";
+          })
+        })
+        this.scroll.on('pullingDown', async () => {
+          console.log('trigger pullDown')
+          this.beforePullDown = false
+          this.isPullingDown = true
+          STEP += 1
+          this.event.once('refreshData', (newDatas) => {
+            this.isPullingDown = false
+            this.beforePullDown = true
+            this.scroll.finishPullDown()
+            console.log("finishPullDown!!!!!!!!!!!!!!!!",newDatas.length, newDatas)
+            if (newDatas.length >0){
+              // 模拟返回数据成功
+              setTimeout(() => {
+                this.scroll.resetInfinityState(newDatas)
+                this.scroll.refresh()
+              }, TIME_BOUNCE )
+            }
+          })
+          let newDatas =  await this.requestFirstPageData()
+          this.event.emit("refreshData", newDatas)
+
+        })
+      },
+      async requestFirstPageData() {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            if (false) {
+             resolve([])
+            } else {
+              this.pageNum = 1
+              let items = []
+              for (let i = 0; i < Math.abs(20); i++) {
+                items[i] = getItem(this.nextItem++)
+              }
+              console.log('pageNum', this.pageNum, 20, items.length)
+              resolve(Promise.all(items))
+            }
+          }, 1000)
         })
       }
     }
@@ -173,7 +275,7 @@
     contain: layout
     will-change: transform
     list-style: none
-  
+
   .infinity-avatar
     border-radius: 500px
     margin-left: 20px
@@ -193,11 +295,11 @@
       background-color: #ccc
       margin: 0.5em 0
 
-  .infinity-bubble img 
+  .infinity-bubble img
     max-width: 100%
     height: auto
 
-  .infinity-bubble 
+  .infinity-bubble
     padding: 7px 10px
     color: #333
     background: #fff
@@ -207,7 +309,7 @@
     min-width: 80px
     margin: 0 5px
 
-  .infinity-bubble::before 
+  .infinity-bubble::before
     content: ''
     border-style: solid
     border-width: 0 10px 10px 0
@@ -216,31 +318,40 @@
     top: 0
     left: -10px
 
-  .infinity-meta 
+  .infinity-meta
     font-size: 0.8rem
     color: #999
     margin-top: 3px
 
-  .infinity-from-me 
+  .infinity-from-me
     justify-content: flex-end
 
-  .infinity-from-me .infinity-avatar 
+  .infinity-from-me .infinity-avatar
     order: 1
     margin-left: 6px
     margin-right: 20px
 
-  .infinity-from-me .infinity-bubble 
+  .infinity-from-me .infinity-bubble
     background: #F9D7FF
 
-  .infinity-from-me .infinity-bubble::before 
+  .infinity-from-me .infinity-bubble::before
     left: 100%
     border-width: 10px 10px 0 0
     /*border-color: #F9D7FF transparent transparent transparent*/
 
-  .infinity-state 
+  .infinity-state
     display: none
 
-  .infinity-invisible 
+  .infinity-invisible
     display: none
-  
+
+  .pullup-tips
+    padding: 20px
+    text-align: center
+    color: #999
+    background: rgba(0,0,0,0.1);
+    width: 100%
+    bottom :0
+    position: absolute;
+    display none;
 </style>

@@ -37,9 +37,10 @@ export default class DataManager {
     }
 
     // add data placeholder
-    if (end > this.list.length) {
+    if (end > this.list.length && this.list.length===0) {
       const len = end - this.list.length
       this.addEmptyData(len)
+      console.log("addEmptyData")
     }
 
     // tslint:disable-next-line: no-floating-promises
@@ -90,6 +91,7 @@ export default class DataManager {
     const min = end - this.loadedNum
     const newData = await this.fetch(min)
     if (newData instanceof Array && newData.length) {
+      // console.log("newData::::", newData.length, newData)
       this.add(newData)
 
       const currentEnd = this.onFetchFinish(this.list, true)
