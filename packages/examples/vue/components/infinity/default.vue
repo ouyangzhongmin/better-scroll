@@ -128,6 +128,7 @@
           },
           infinity: {
             render: (item, div) => {
+              console.log("render:::::", item)
               div = div || this.$refs.message.cloneNode(true)
               div.dataset.id = item.id
               div.querySelector('.infinity-avatar').src = require(`./image/avatar${item.avatar}.jpg`)
@@ -202,31 +203,33 @@
             document.getElementsByClassName("pullup-tips")[0].style.display = "none";
           })
         })
-        this.scroll.on('pullingDown', () => {
+        this.scroll.on('pullingDown', async () => {
           console.log('trigger pullDown')
           this.beforePullDown = false
           this.isPullingDown = true
           STEP += 1
-
-          this.requestFirstPageData()
-          this.event.once('refreshData',(newDatas) => {
+          this.event.once('refreshData', (newDatas) => {
             this.isPullingDown = false
             this.beforePullDown = true
             this.scroll.finishPullDown()
-            console.log("finishPullDown!!!!!!!!!!!!!!!!", newDatas)
+            console.log("finishPullDown!!!!!!!!!!!!!!!!",newDatas.length, newDatas)
             if (newDatas.length >0){
               setTimeout(() => {
                 this.scroll.resetInfinityState(newDatas)
                 this.scroll.refresh()
-              }, TIME_BOUNCE + 100)
+              }, TIME_BOUNCE )
             }
           })
+          let newDatas =  await this.requestFirstPageData()
+          this.event.emit("refreshData", newDatas)
+
         })
       },
       async requestFirstPageData() {
+        return new Promise((resolve, reject) => {
           setTimeout(() => {
-            if (false ) {
-              this.event.emit("refreshData",[])
+            if (false) {
+             resolve([])
             } else {
               this.pageNum = 1
               let items = []
@@ -234,9 +237,10 @@
                 items[i] = getItem(this.nextItem++)
               }
               console.log('pageNum', this.pageNum, 20, items.length)
-              this.event.emit("refreshData",items)
+              resolve(Promise.all(items))
             }
-          }, 3000)
+          }, 2000)
+        })
       }
     }
   }

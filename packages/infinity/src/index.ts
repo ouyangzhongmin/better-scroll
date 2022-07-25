@@ -178,9 +178,14 @@ export default class InfinityScroll implements PluginAPI  {
   }
 
   resetInfinityState(newDatas: Array<any>){
+    this.start = 0
+    this.end  = 0
     this.dataManager.resetState()
+    this.indexCalculator.resetState()
+    this.domManager.resetState()
     this.dataManager.add(newDatas)
-
+    // console.log("resetInfinityState:::::", this.dataManager.getList())
+    this.update({ y: 0 })
   }
 
   destroy() {
