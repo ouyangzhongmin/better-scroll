@@ -178,7 +178,7 @@
                     this.fetchDataStatus = 1
                   }
                   this.event.emit("fetchData", "msg")
-                }, 3000)
+                }, 2000)
               })
             }
           }
@@ -214,6 +214,7 @@
             this.scroll.finishPullDown()
             console.log("finishPullDown!!!!!!!!!!!!!!!!",newDatas.length, newDatas)
             if (newDatas.length >0){
+              // 模拟返回数据成功
               setTimeout(() => {
                 this.scroll.resetInfinityState(newDatas)
                 this.scroll.refresh()
@@ -239,7 +240,7 @@
               console.log('pageNum', this.pageNum, 20, items.length)
               resolve(Promise.all(items))
             }
-          }, 2000)
+          }, 1000)
         })
       }
     }

@@ -223,6 +223,11 @@ export default class DomManager {
   }
   resetState() {
     this.destroy()
+    // 清理当前的渲染对象
+    const childs = this.content.childNodes
+    for (let i = childs.length - 1; i >= 0; i--) {
+      this.content.removeChild(childs[i])
+    }
     this.timers = []
     this.unusedDom = []
   }
